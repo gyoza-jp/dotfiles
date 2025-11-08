@@ -1,6 +1,8 @@
-# aliases of conda command
-alias cona='conda activate'
-alias cond='conda deactivate' 
+# Amazon Q pre block. Keep at the top of this file.
+[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
+
+# PATH
+export PATH="$HOME/.local/bin:$PATH"
 
 # global alias
 alias -g @c='| pbcopy'
@@ -9,29 +11,16 @@ alias -g @l='| less'
 alias -g @m='| more'
 alias -g @x='| xargs'
 
-# zplug
-source ~/.zplug/init.zsh
-zplug 'zplug/zplug', hook-build:'zplug --self-manage'
-
-# syntax highlighting
-zplug "zsh-users/zsh-syntax-highlighting"
-# commnad history search which you can type in any part of any command from history and then press the UP and DOWN arrows, to cycle through matches.
-zplug "zsh-users/zsh-history-substring-search"
-# command suggestions as you type based on history and completions.
-zplug "zsh-users/zsh-autosuggestions"
-# reinforced completion
-zplug "zsh-users/zsh-completions"
-
-# Install plugins if there are plugins that have not been installed
-if ! zplug check --verbose; then
-  printf "Install? [y/N]: "
-  if read -q; then
-    echo; zplug install
-  fi
+# sheldon
+if command -v sheldon &> /dev/null; then
+  eval "$(sheldon source)"
+else
+  echo "sheldon is not installed. Install it with:"
+  echo "brew install sheldon"
 fi
 
-# Then, source plugins and add commands to $PATH
-zplug load
+# completion
+autoload -Uz compinit && compinit
 
 
 # change 'ls' color
@@ -43,8 +32,6 @@ alias la="ls -laG"
 
 #>>>>>>>>> prompt style >>>>>>>>>>>>
 export CLICOLOR=1
-
-autoload -Uz compinit && compinit  # Gitの補完を有効化
 
 function left-prompt {
   name_t='179m%}'      # user name text clolr
@@ -63,7 +50,7 @@ function left-prompt {
   echo "${user}%n%#@%m${back_color}${path_b}${text_color}${name_b}${sharp} ${dir}%~${reset}${text_color}${path_b}${sharp}${reset} "
 }
 
-PROMPT=`left-prompt` 
+PROMPT='$(left-prompt)' 
 
 # start a new line by each command
 function precmd() {
@@ -90,31 +77,29 @@ function rprompt-git-current-branch {
   blue='033m%}'
   reset='%{\e[0m%}'
   
-  if test -z $(git rev-parse --git-dir 2> /dev/null); then
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
     return
   fi
-  branch_name=`git rev-parse --abbrev-ref HEAD 2> /dev/null`
-  st=`git status 2> /dev/null`
-  if [[ -n `echo "$st" | grep "^nothing to"` ]]; then
-    # Clear condition (Everything is committed.)
+  
+  branch_name=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+  st=$(git status --porcelain 2> /dev/null)
+  
+  if [ -z "$st" ]; then
+    # Clean working directory
     branch_status="${color}${green}${branch}"
-  elif [[ -n `echo "$st" | grep "^Untracked files"` ]]; then
-    # Some file are not tracked.
+  elif echo "$st" | grep -q "^??"; then
+    # Untracked files
     branch_status="${color}${red}${branch}?"
-  elif [[ -n `echo "$st" | grep "^Changes not staged for commit"` ]]; then
-    # Changes not staged for commit
+  elif echo "$st" | grep -q "^ M"; then
+    # Changes not staged
     branch_status="${color}${red}${branch}+"
-  elif [[ -n `echo "$st" | grep "^Changes to be committed"` ]]; then
-    # Changes to be commited
+  elif echo "$st" | grep -q "^M"; then
+    # Changes staged
     branch_status="${color}${yellow}${branch}!"
-  elif [[ -n `echo "$st" | grep "^rebase in progress"` ]]; then
-    # Confilict has occurred
-    echo "${color}${red}${branch}!(no branch)${reset}"
-    return
   else
     branch_status="${color}${blue}${branch}"
   fi
-  # display git branch with status color
+  
   echo "${branch_status}$branch_name${reset}"
 }
  
@@ -127,4 +112,12 @@ RPROMPT='`rprompt-git-current-branch`'
 
 # Slogan
 echo "Learn or Die."
+
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# Amazon Q post block. Keep at the bottom of this file.
+[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
 
